@@ -59,7 +59,7 @@ impl PrimeSampable for BigInt
 fn is_prime(candidate: &BigInt) -> bool
 {
     // First, simple trial divide
-    for p in SMALL_PRIMES.into_iter() {
+    for p in SMALL_PRIMES.iter() {
         let prime = BigInt::from(*p);
         let r = candidate % &prime;
         if !NumberTests::is_zero(&r) {
