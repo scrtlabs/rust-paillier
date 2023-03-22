@@ -32,21 +32,21 @@ impl Samplable for ramp::Int {
 impl Samplable for ramp::Int {
     fn sample_below(upper: &Self) -> Self {
         let mut rng = ChaChaRng::from_seed(
-            [0u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
+            [1u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
         );
         rng.gen_uint_below(upper)
     }
 
     fn sample(bitsize: usize) -> Self {
         let mut rng = ChaChaRng::from_seed(
-            [0u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
+            [3u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
         );
         rng.gen_uint(bitsize)
     }
 
     fn sample_range(lower: &Self, upper: &Self) -> Self {
         let mut rng = ChaChaRng::from_seed(
-            [0u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
+            [7u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
         );
         rng.gen_int_range(lower, upper)
     }
