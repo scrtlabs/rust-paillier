@@ -27,15 +27,15 @@ impl Samplable for ramp::Int {
 #[cfg(feature = "wasm")]
 impl Samplable for ramp::Int {
     fn sample_below(upper: &Self) -> Self {
-        ramp::Int::zero()
+        ramp::Int::one()
     }
 
     fn sample(bitsize: usize) -> Self {
-        ramp::Int::zero()
+        ramp::Int::one()
     }
 
     fn sample_range(lower: &Self, upper: &Self) -> Self {
-        ramp::Int::zero()
+        ramp::Int::one()
     }
 }
 
