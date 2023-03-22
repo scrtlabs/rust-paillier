@@ -3,8 +3,12 @@
 extern crate ramp;
 use self::ramp::RandomInt;
 use super::traits::*;
-#[cfg(not(feature = "wasm"))]
 use rand::prelude::*;
+
+#[cfg(feature = "wasm")]
+extern crate rand_chacha;
+#[cfg(feature = "wasm")]
+use self::rand_chacha::ChaChaRng;
 
 #[cfg(not(feature = "wasm"))]
 impl Samplable for ramp::Int {
@@ -27,15 +31,24 @@ impl Samplable for ramp::Int {
 #[cfg(feature = "wasm")]
 impl Samplable for ramp::Int {
     fn sample_below(upper: &Self) -> Self {
-        ramp::Int::one()
+        let mut rng = ChaChaRng::from_seed(
+            [0u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
+        );
+        rng.gen_uint_below(upper)
     }
 
     fn sample(bitsize: usize) -> Self {
-        ramp::Int::one()
+        let mut rng = ChaChaRng::from_seed(
+            [0u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
+        );
+        rng.gen_uint(bitsize)
     }
 
     fn sample_range(lower: &Self, upper: &Self) -> Self {
-        ramp::Int::one()
+        let mut rng = ChaChaRng::from_seed(
+            [0u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
+        );
+        rng.gen_int_range(lower, upper)
     }
 }
 
