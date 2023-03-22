@@ -40,7 +40,7 @@ rand = { version = "0.8.5", default-features = false }
 rayon = "1.0"
 serde = "1.0"
 serde_derive = "1.0"
-ramp = { git = "https://github.com/scrtlabs/ramp", rev = "19ff0dc2b0ec0f3fea2590a83bf5a0468e206a0a", optional = true }
+ramp = { git = "https://github.com/scrtlabs/ramp", rev = "396c8a3f6d6584fc40e2f768dd00c69c944a6aed", optional = true }
 framp = { version = "0.3", optional = true }
 rust-gmp = { version = "0.5", optional = true }
 ring = { version = "0.13", optional = true }
