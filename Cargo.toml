@@ -1,6 +1,6 @@
 [package]
 name = "paillier"
-version = "0.2.0"
+version = "0.2.1-alpha.0"
 authors = [
   "Mario Cornejo <murdix@gmail.com>",
   "Morten Dahl <mortendahlcs@gmail.com>",
@@ -10,7 +10,7 @@ description = "A pure-Rust implementation of the Paillier encryption scheme"
 keywords = [
   "paillier",
   "cryptography",
-  "homomorphic-encryption",
+  "homomorphic-encrypt",
   "secure-computation",
   "zero-knowledge",
 ]
@@ -38,7 +38,7 @@ rand = "0.5"
 rayon = "1.0"
 serde = "1.0"
 serde_derive = "1.0"
-ramp = { version="0.5", optional=true }
+ramp = { git = "https://github.com/Aatch/ramp", rev = "9555445f0232fd558a0c5893cfa256e54a1fc896", optional = true }
 framp = { version="0.3", optional=true }
 rust-gmp = { version="0.5", optional=true }
 ring = { version="0.13", optional=true }
