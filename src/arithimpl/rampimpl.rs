@@ -1,6 +1,7 @@
 #![cfg(feature = "useramp")]
 
 extern crate ramp;
+
 use self::ramp::RandomInt;
 use super::traits::*;
 use rand::prelude::*;
@@ -9,6 +10,18 @@ use rand::prelude::*;
 extern crate rand_chacha;
 #[cfg(feature = "wasm")]
 use self::rand_chacha::ChaChaRng;
+
+#[cfg(feature = "wasm")]
+use std::sync::RwLock;
+
+#[cfg(feature = "wasm")]
+extern crate lazy_static;
+
+#[cfg(feature = "wasm")]
+self::lazy_static::lazy_static! {
+    /// FIXME: let contract choose the seed
+    static ref PRNG: RwLock<ChaChaRng> = RwLock::new(ChaChaRng::from_seed([0u8;32]));
+}
 
 #[cfg(not(feature = "wasm"))]
 impl Samplable for ramp::Int {
@@ -31,24 +44,18 @@ impl Samplable for ramp::Int {
 #[cfg(feature = "wasm")]
 impl Samplable for ramp::Int {
     fn sample_below(upper: &Self) -> Self {
-        let mut rng = ChaChaRng::from_seed(
-            [1u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
-        );
-        rng.gen_uint_below(upper)
+        let mut prng = (*PRNG).write().unwrap();
+        prng.gen_uint_below(upper)
     }
 
     fn sample(bitsize: usize) -> Self {
-        let mut rng = ChaChaRng::from_seed(
-            [3u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
-        );
-        rng.gen_uint(bitsize)
+        let mut prng = (*PRNG).write().unwrap();
+        prng.gen_uint(bitsize)
     }
 
     fn sample_range(lower: &Self, upper: &Self) -> Self {
-        let mut rng = ChaChaRng::from_seed(
-            [7u8; 32], /* TODO: FIX ME if keygen is needed in wasm */
-        );
-        rng.gen_int_range(lower, upper)
+        let mut prng = (*PRNG).write().unwrap();
+        prng.gen_int_range(lower, upper)
     }
 }
 
