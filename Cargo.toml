@@ -24,17 +24,18 @@ categories = ["cryptography"]
 travis-ci = { repository = "mortendahl/rust-paillier" }
 
 [features]
-default = ["useramp", "keygen"]
+default = ["useramp", "keygen", "wasm"]
 keygen = []
 proofs = ["ring"]
 useramp = ["ramp"]
 useframp = ["framp"]
 usegmp = ["rust-gmp"]
 gmp_nonsec = []
+wasm = []
 
 [dependencies]
 num-traits = "0.1"
-rand = "0.5"
+rand = { version = "0.8.5", default-features = false }
 rayon = "1.0"
 serde = "1.0"
 serde_derive = "1.0"

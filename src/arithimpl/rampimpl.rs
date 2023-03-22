@@ -1,32 +1,54 @@
-#![cfg(feature="useramp")]
+#![cfg(feature = "useramp")]
 
 extern crate ramp;
-
-use rand::prelude::*;
 use self::ramp::RandomInt;
 use super::traits::*;
+#[cfg(not(feature = "wasm"))]
+use rand::prelude::*;
 
+#[cfg(not(feature = "wasm"))]
 impl Samplable for ramp::Int {
     fn sample_below(upper: &Self) -> Self {
         let mut rng = thread_rng();
         rng.gen_uint_below(upper)
     }
 
-     fn sample(bitsize: usize) -> Self {
+    fn sample(bitsize: usize) -> Self {
         let mut rng = thread_rng();
         rng.gen_uint(bitsize)
     }
 
-     fn sample_range(lower: &Self, upper: &Self) -> Self {
+    fn sample_range(lower: &Self, upper: &Self) -> Self {
         let mut rng = thread_rng();
         rng.gen_int_range(lower, upper)
     }
 }
 
+#[cfg(feature = "wasm")]
+impl Samplable for ramp::Int {
+    fn sample_below(upper: &Self) -> Self {
+        ramp::Int::zero()
+    }
+
+    fn sample(bitsize: usize) -> Self {
+        ramp::Int::zero()
+    }
+
+    fn sample_range(lower: &Self, upper: &Self) -> Self {
+        ramp::Int::zero()
+    }
+}
+
 impl NumberTests for ramp::Int {
-    fn is_zero(me: &Self) -> bool { me == &0 }
-    fn is_even(me: &Self) -> bool { me.is_even() }
-    fn is_negative(me: &Self) -> bool { me < &0 }
+    fn is_zero(me: &Self) -> bool {
+        me == &0
+    }
+    fn is_even(me: &Self) -> bool {
+        me.is_even()
+    }
+    fn is_negative(me: &Self) -> bool {
+        me < &0
+    }
 }
 
 impl ModPow for ramp::Int {}
