@@ -34,13 +34,13 @@ gmp_nonsec = []
 wasm = ["rand_chacha"]
 
 [dependencies]
-num-traits = { git = "https://github.com/scrtlabs/num-traits", rev = "1cb7c5de33563fc40351df681546cdc963e788dd" }
+num-traits = { git = "https://github.com/scrtlabs/num-traits", rev = "c1d3f2c53678fb72318bad1598592f2fe830400b", default-features = false }
 rand_chacha = { version = "0.3.1", optional = true }
 rand = { version = "0.8.5", default-features = false }
 rayon = "1.0"
 serde = { version = "1.0.147", default-features = false, features = ["derive"] }
 serde_derive = "1.0"
-ramp = { git = "https://github.com/scrtlabs/ramp", rev = "fc56d683e36fc27a71c2caf5219600f97e83e983", optional = true }
+ramp = { git = "https://github.com/scrtlabs/ramp", rev = "1d96d5411549a21515d03ff84b2aba6b021dc188", optional = true }
 framp = { version = "0.3", optional = true }
 rust-gmp = { version = "0.5", optional = true }
 ring = { version = "0.13", optional = true }
