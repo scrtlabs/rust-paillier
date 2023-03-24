@@ -32,12 +32,13 @@ useframp = ["framp"]
 usegmp = ["rust-gmp"]
 gmp_nonsec = []
 wasm = ["rand_chacha"]
+floats = ["rayon"]
 
 [dependencies]
 num-traits = { git = "https://github.com/scrtlabs/num-traits", branch = "secret-num-traits-0.2.x", default-features = false }
 rand_chacha = { version = "0.3.1", optional = true }
 rand = { version = "0.8.5", default-features = false }
-rayon = "1.0"
+rayon = { version = "1.0", optional = true }
 serde = { version = "1.0.147", default-features = false, features = ["derive"] }
 serde_derive = "1.0"
 ramp = { git = "https://github.com/scrtlabs/ramp", branch = "secret-ramp-0.7.x", optional = true }

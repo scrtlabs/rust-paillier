@@ -2,12 +2,16 @@
 
 use std::borrow::{Borrow, Cow};
 
+#[cfg(feature = "floats")]
 use rayon::join;
 use serde::*;
 
 use arithimpl::traits::*;
 use traits::*;
-use {BigInt, DecryptionKey, EncryptionKey, MinimalEncryptionKey, MinimalDecryptionKey, Keypair, Paillier, RawCiphertext, RawPlaintext};
+use {
+    BigInt, DecryptionKey, EncryptionKey, Keypair, MinimalDecryptionKey, MinimalEncryptionKey,
+    Paillier, RawCiphertext, RawPlaintext,
+};
 
 impl Keypair {
     /// Generate default encryption and decryption keys.
@@ -227,7 +231,10 @@ impl<'m, 'd> Encrypt<EncryptionKey, RawPlaintext<'m>, RawCiphertext<'d>> for Pai
     }
 }
 
-impl<'m, 'r, 'd> EncryptWithChosenRandomness<EncryptionKey, RawPlaintext<'m>, &'r Randomness, RawCiphertext<'d>> for Paillier {
+impl<'m, 'r, 'd>
+    EncryptWithChosenRandomness<EncryptionKey, RawPlaintext<'m>, &'r Randomness, RawCiphertext<'d>>
+    for Paillier
+{
     fn encrypt_with_chosen_randomness(
         ek: &EncryptionKey,
         m: RawPlaintext<'m>,
@@ -240,7 +247,14 @@ impl<'m, 'r, 'd> EncryptWithChosenRandomness<EncryptionKey, RawPlaintext<'m>, &'
     }
 }
 
-impl<'m, 'r, 'd> EncryptWithChosenRandomness<EncryptionKey, RawPlaintext<'m>, &'r PrecomputedRandomness, RawCiphertext<'d>> for Paillier {
+impl<'m, 'r, 'd>
+    EncryptWithChosenRandomness<
+        EncryptionKey,
+        RawPlaintext<'m>,
+        &'r PrecomputedRandomness,
+        RawCiphertext<'d>,
+    > for Paillier
+{
     fn encrypt_with_chosen_randomness(
         ek: &EncryptionKey,
         m: RawPlaintext<'m>,
@@ -255,6 +269,7 @@ impl<'m, 'r, 'd> EncryptWithChosenRandomness<EncryptionKey, RawPlaintext<'m>, &'
 impl<'m, 'd> Encrypt<DecryptionKey, RawPlaintext<'m>, RawCiphertext<'d>> for Paillier {
     fn encrypt(dk: &DecryptionKey, m: RawPlaintext<'m>) -> RawCiphertext<'d> {
         let (mp, mq) = crt_decompose(m.0.borrow(), &dk.pp, &dk.qq);
+        #[cfg(feature = "floats")]
         let (cp, cq) = join(
             || {
                 let rp = BigInt::sample_below(&dk.p);
@@ -264,6 +279,23 @@ impl<'m, 'd> Encrypt<DecryptionKey, RawPlaintext<'m>, RawCiphertext<'d>> for Pai
                 cp
             },
             || {
+                let rq = BigInt::sample_below(&dk.q);
+                let rnq = BigInt::modpow(&rq, &dk.n, &dk.qq);
+                let gmq = (1 + mq * &dk.n) % &dk.qq; // TODO[Morten] maybe there's more to get here
+                let cq = (gmq * rnq) % &dk.qq;
+                cq
+            },
+        );
+        #[cfg(not(feature = "floats"))]
+        let (cp, cq) = (
+            {
+                let rp = BigInt::sample_below(&dk.p);
+                let rnp = BigInt::modpow(&rp, &dk.n, &dk.pp);
+                let gmp = (1 + mp * &dk.n) % &dk.pp; // TODO[Morten] maybe there's more to get here
+                let cp = (gmp * rnp) % &dk.pp;
+                cp
+            },
+            {
                 let rq = BigInt::sample_below(&dk.q);
                 let rnq = BigInt::modpow(&rq, &dk.n, &dk.qq);
                 let gmq = (1 + mq * &dk.n) % &dk.qq; // TODO[Morten] maybe there's more to get here
@@ -287,6 +319,7 @@ impl<'m, 'r, 'd>
     ) -> RawCiphertext<'d> {
         let (mp, mq) = crt_decompose(m.0.borrow(), &dk.pp, &dk.qq);
         let (rp, rq) = crt_decompose(&r.0, &dk.pp, &dk.qq);
+        #[cfg(feature = "floats")]
         let (cp, cq) = join(
             || {
                 let rnp = BigInt::modpow(&rp, &dk.n, &dk.pp);
@@ -295,6 +328,21 @@ impl<'m, 'r, 'd>
                 cp
             },
             || {
+                let rnq = BigInt::modpow(&rq, &dk.n, &dk.qq);
+                let gmq = (1 + mq * &dk.n) % &dk.qq; // TODO[Morten] maybe there's more to get here
+                let cq = (gmq * rnq) % &dk.qq;
+                cq
+            },
+        );
+        #[cfg(not(feature = "floats"))]
+        let (cp, cq) = (
+            {
+                let rnp = BigInt::modpow(&rp, &dk.n, &dk.pp);
+                let gmp = (1 + mp * &dk.n) % &dk.pp; // TODO[Morten] maybe there's more to get here
+                let cp = (gmp * rnp) % &dk.pp;
+                cp
+            },
+            {
                 let rnq = BigInt::modpow(&rq, &dk.n, &dk.qq);
                 let gmq = (1 + mq * &dk.n) % &dk.qq; // TODO[Morten] maybe there's more to get here
                 let cq = (gmq * rnq) % &dk.qq;
@@ -359,6 +407,7 @@ impl<'c, 'm> Decrypt<DecryptionKey, &'c RawCiphertext<'c>, RawPlaintext<'m>> for
     fn decrypt(dk: &DecryptionKey, c: &'c RawCiphertext<'c>) -> RawPlaintext<'m> {
         let (cp, cq) = crt_decompose(c.0.borrow(), &dk.pp, &dk.qq);
         // decrypt in parallel with respectively p and q
+        #[cfg(feature = "floats")]
         let (mp, mq) = join(
             || {
                 // process using p
@@ -368,6 +417,23 @@ impl<'c, 'm> Decrypt<DecryptionKey, &'c RawCiphertext<'c>, RawPlaintext<'m>> for
                 mp
             },
             || {
+                // process using q
+                let dq = BigInt::modpow(&cq, &dk.qminusone, &dk.qq);
+                let lq = l(&dq, &dk.q);
+                let mq = (&lq * &dk.hq) % &dk.q;
+                mq
+            },
+        );
+        #[cfg(not(feature = "floats"))]
+        let (mp, mq) = (
+            {
+                // process using p
+                let dp = BigInt::modpow(&cp, &dk.pminusone, &dk.pp);
+                let lp = l(&dp, &dk.p);
+                let mp = (&lp * &dk.hp) % &dk.p;
+                mp
+            },
+            {
                 // process using q
                 let dq = BigInt::modpow(&cq, &dk.qminusone, &dk.qq);
                 let lq = l(&dq, &dk.q);
@@ -605,5 +671,4 @@ mod tests {
         let result: Result<EncryptionKey, _> = serde_json::from_str(&illformatted);
         assert!(result.is_err())
     }
-
 }
