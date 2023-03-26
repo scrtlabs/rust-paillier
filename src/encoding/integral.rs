@@ -29,7 +29,7 @@ where for<'p, 'c> Self: Encrypt<EK, RawPlaintext<'p>, RawCiphertext<'c>>
         let c = Self::encrypt(ek, RawPlaintext::from(m_packed));
         EncodedCiphertext {
             raw: c.into(),
-            components: m.len(),
+            components: m.len() as u64,
             _phantom: PhantomData,
         }
     }
@@ -83,7 +83,7 @@ where
 {
     fn decrypt(dk: &DK, c: C) -> Vec<u64> {
         let m = Self::decrypt(dk, RawCiphertext::from(&c.borrow().raw));
-        unpack(m.into(), 64, c.borrow().components)
+        unpack(m.into(), 64, c.borrow().components as usize)
     }
 }
 
@@ -174,7 +174,7 @@ where
     fn add(ek: &EK, c: C, p: u64) -> EncodedCiphertext<Vec<u64>> {
         let c = c.borrow();
 
-        let m2_expanded = vec![p; c.components];
+        let m2_expanded = vec![p; c.components as usize];
         let d = Self::add(
             ek,
             RawCiphertext::from(&c.raw),

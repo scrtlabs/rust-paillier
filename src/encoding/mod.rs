@@ -13,11 +13,11 @@ pub mod integral;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EncodedCiphertext<T> {
     #[serde(with = "::serialize::bigint")]
-    pub raw: BigInt,
+    raw: BigInt,
 
-    pub components: usize,
+    components: u64,
 
-    pub _phantom: PhantomData<T>,
+    _phantom: PhantomData<T>,
 }
 
 fn pack<T>(components: &[T], component_bitsize: usize) -> BigInt
