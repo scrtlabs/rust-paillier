@@ -13,11 +13,11 @@ pub mod integral;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EncodedCiphertext<T> {
     #[serde(with = "::serialize::bigint")]
-    raw: BigInt,
+    pub raw: BigInt,
 
-    components: usize,
+    pub components: usize,
 
-    _phantom: PhantomData<T>,
+    pub _phantom: PhantomData<T>,
 }
 
 fn pack<T>(components: &[T], component_bitsize: usize) -> BigInt
@@ -63,3 +63,4 @@ fn test_pack() {
     let unpacked: Vec<u64> = unpack(packed, component_bitsize, 3);
     assert_eq!(unpacked, v);
 }
+
