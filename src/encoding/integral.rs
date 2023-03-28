@@ -4,12 +4,13 @@ use std::borrow::Borrow;
 use std::marker::PhantomData;
 
 use super::{pack, unpack, EncodedCiphertext};
-use ::traits::*;
-use ::{Paillier, BigInt, RawCiphertext, RawPlaintext};
 use arithimpl::traits::ConvertFrom;
+use traits::*;
+use {BigInt, Paillier, RawCiphertext, RawPlaintext};
 
 impl<EK> Encrypt<EK, u64, EncodedCiphertext<u64>> for Paillier
-where for<'p, 'c> Self: Encrypt<EK, RawPlaintext<'p>, RawCiphertext<'c>>
+where
+    for<'p, 'c> Self: Encrypt<EK, RawPlaintext<'p>, RawCiphertext<'c>>,
 {
     fn encrypt(ek: &EK, m: u64) -> EncodedCiphertext<u64> {
         let c = Self::encrypt(ek, RawPlaintext::from(BigInt::from(m)));
@@ -22,7 +23,8 @@ where for<'p, 'c> Self: Encrypt<EK, RawPlaintext<'p>, RawCiphertext<'c>>
 }
 
 impl<'m, EK> Encrypt<EK, &'m [u64], EncodedCiphertext<Vec<u64>>> for Paillier
-where for<'p, 'c> Self: Encrypt<EK, RawPlaintext<'p>, RawCiphertext<'c>>
+where
+    for<'p, 'c> Self: Encrypt<EK, RawPlaintext<'p>, RawCiphertext<'c>>,
 {
     fn encrypt(ek: &EK, m: &'m [u64]) -> EncodedCiphertext<Vec<u64>> {
         let m_packed = pack(m, 64);
@@ -35,8 +37,22 @@ where for<'p, 'c> Self: Encrypt<EK, RawPlaintext<'p>, RawCiphertext<'c>>
     }
 }
 
-impl<EK, C> Rerandomize<EK, C, EncodedCiphertext<u64>> for Paillier 
-where 
+impl<EK> Encrypt<EK, BigInt, EncodedCiphertext<BigInt>> for Paillier
+where
+    for<'p, 'c> Self: Encrypt<EK, RawPlaintext<'p>, RawCiphertext<'c>>,
+{
+    fn encrypt(ek: &EK, m: BigInt) -> EncodedCiphertext<BigInt> {
+        let c = Self::encrypt(ek, RawPlaintext::from(m));
+        EncodedCiphertext {
+            raw: c.into(),
+            components: 1,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<EK, C> Rerandomize<EK, C, EncodedCiphertext<u64>> for Paillier
+where
     for<'c, 'd> Self: Rerandomize<EK, RawCiphertext<'c>, RawCiphertext<'d>>,
     C: Borrow<EncodedCiphertext<u64>>,
 {
@@ -50,8 +66,8 @@ where
     }
 }
 
-impl<EK, C> Rerandomize<EK, C, EncodedCiphertext<Vec<u64>>> for Paillier 
-where 
+impl<EK, C> Rerandomize<EK, C, EncodedCiphertext<Vec<u64>>> for Paillier
+where
     for<'c, 'd> Self: Rerandomize<EK, RawCiphertext<'c>, RawCiphertext<'d>>,
     C: Borrow<EncodedCiphertext<Vec<u64>>>,
 {
@@ -65,8 +81,23 @@ where
     }
 }
 
+impl<EK, C> Rerandomize<EK, C, EncodedCiphertext<BigInt>> for Paillier
+where
+    for<'c, 'd> Self: Rerandomize<EK, RawCiphertext<'c>, RawCiphertext<'d>>,
+    C: Borrow<EncodedCiphertext<BigInt>>,
+{
+    fn rerandomize(ek: &EK, c: C) -> EncodedCiphertext<BigInt> {
+        let d = Self::rerandomize(ek, RawCiphertext::from(&c.borrow().raw));
+        EncodedCiphertext {
+            raw: d.into(),
+            components: c.borrow().components,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 impl<DK, C> Decrypt<DK, C, u64> for Paillier
-where 
+where
     for<'c, 'p> Self: Decrypt<DK, RawCiphertext<'c>, RawPlaintext<'p>>,
     C: Borrow<EncodedCiphertext<u64>>,
 {
@@ -77,13 +108,24 @@ where
 }
 
 impl<DK, C> Decrypt<DK, C, Vec<u64>> for Paillier
-where 
+where
     for<'c, 'p> Self: Decrypt<DK, RawCiphertext<'c>, RawPlaintext<'p>>,
     C: Borrow<EncodedCiphertext<Vec<u64>>>,
 {
     fn decrypt(dk: &DK, c: C) -> Vec<u64> {
         let m = Self::decrypt(dk, RawCiphertext::from(&c.borrow().raw));
         unpack(m.into(), 64, c.borrow().components as usize)
+    }
+}
+
+impl<DK, C> Decrypt<DK, C, BigInt> for Paillier
+where
+    for<'c, 'p> Self: Decrypt<DK, RawCiphertext<'c>, RawPlaintext<'p>>,
+    C: Borrow<EncodedCiphertext<BigInt>>,
+{
+    fn decrypt(dk: &DK, c: C) -> BigInt {
+        let m = Self::decrypt(dk, RawCiphertext::from(&c.borrow().raw));
+        BigInt::from(m)
     }
 }
 
@@ -97,12 +139,12 @@ where
         let d = Self::add(
             ek,
             RawCiphertext::from(&c1.borrow().raw),
-            RawCiphertext::from(&c2.borrow().raw)
+            RawCiphertext::from(&c2.borrow().raw),
         );
         EncodedCiphertext {
             raw: d.into(),
             components: 1,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
@@ -121,11 +163,31 @@ where
         let d = Self::add(
             ek,
             RawCiphertext::from(&c1.raw),
-            RawCiphertext::from(&c2.raw)
+            RawCiphertext::from(&c2.raw),
         );
         EncodedCiphertext {
             raw: d.into(),
             components: c1.components,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<EK, C1, C2> Add<EK, C1, C2, EncodedCiphertext<BigInt>> for Paillier
+where
+    for<'c1, 'c2, 'd> Self: Add<EK, RawCiphertext<'c1>, RawCiphertext<'c2>, RawCiphertext<'d>>,
+    C1: Borrow<EncodedCiphertext<BigInt>>,
+    C2: Borrow<EncodedCiphertext<BigInt>>,
+{
+    fn add(ek: &EK, c1: C1, c2: C2) -> EncodedCiphertext<BigInt> {
+        let d = Self::add(
+            ek,
+            RawCiphertext::from(&c1.borrow().raw),
+            RawCiphertext::from(&c2.borrow().raw),
+        );
+        EncodedCiphertext {
+            raw: d.into(),
+            components: 1,
             _phantom: PhantomData,
         }
     }
@@ -148,7 +210,7 @@ where
 // }
 
 impl<EK, C> Add<EK, C, u64, EncodedCiphertext<u64>> for Paillier
-where 
+where
     for<'c, 'p, 'd> Self: Add<EK, RawCiphertext<'c>, RawPlaintext<'p>, RawCiphertext<'d>>,
     C: Borrow<EncodedCiphertext<u64>>,
 {
@@ -156,7 +218,7 @@ where
         let d = Self::add(
             ek,
             RawCiphertext::from(&c.borrow().raw),
-            RawPlaintext::from(BigInt::from(p))
+            RawPlaintext::from(BigInt::from(p)),
         );
         EncodedCiphertext {
             raw: d.into(),
@@ -167,7 +229,7 @@ where
 }
 
 impl<EK, C> Add<EK, C, u64, EncodedCiphertext<Vec<u64>>> for Paillier
-where 
+where
     for<'c, 'p, 'd> Self: Add<EK, RawCiphertext<'c>, RawPlaintext<'p>, RawCiphertext<'d>>,
     C: Borrow<EncodedCiphertext<Vec<u64>>>,
 {
@@ -178,7 +240,7 @@ where
         let d = Self::add(
             ek,
             RawCiphertext::from(&c.raw),
-            RawPlaintext::from(pack(&m2_expanded, 64))
+            RawPlaintext::from(pack(&m2_expanded, 64)),
         );
         EncodedCiphertext {
             raw: d.into(),
@@ -188,8 +250,27 @@ where
     }
 }
 
+impl<EK, C> Add<EK, C, BigInt, EncodedCiphertext<BigInt>> for Paillier
+where
+    for<'c, 'p, 'd> Self: Add<EK, RawCiphertext<'c>, RawPlaintext<'p>, RawCiphertext<'d>>,
+    C: Borrow<EncodedCiphertext<BigInt>>,
+{
+    fn add(ek: &EK, c: C, p: BigInt) -> EncodedCiphertext<BigInt> {
+        let d = Self::add(
+            ek,
+            RawCiphertext::from(&c.borrow().raw),
+            RawPlaintext::from(p),
+        );
+        EncodedCiphertext {
+            raw: d.into(),
+            components: 1,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 // impl<'m2, EK, C1> Add<EK, C1, &'m2 [u64], Ciphertext<Vec<u64>>> for Paillier
-// where 
+// where
 //     for<'c1> Self: Add<EK, &'c1 BigInt, BigInt, BigInt>,
 //     C1: Borrow<Ciphertext<Vec<u64>>>,
 // {
@@ -207,12 +288,31 @@ where
         let d = Self::add(
             ek,
             RawPlaintext::from(BigInt::from(m1)),
-            RawCiphertext::from(&c2.borrow().raw)
+            RawCiphertext::from(&c2.borrow().raw),
         );
         EncodedCiphertext {
             raw: d.into(),
             components: 1,
-            _phantom: PhantomData
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<EK, C2> Add<EK, BigInt, C2, EncodedCiphertext<BigInt>> for Paillier
+where
+    for<'m, 'c, 'd> Self: Add<EK, RawPlaintext<'m>, RawCiphertext<'c>, RawCiphertext<'d>>,
+    C2: Borrow<EncodedCiphertext<BigInt>>,
+{
+    fn add(ek: &EK, m1: BigInt, c2: C2) -> EncodedCiphertext<BigInt> {
+        let d = Self::add(
+            ek,
+            RawPlaintext::from(m1),
+            RawCiphertext::from(&c2.borrow().raw),
+        );
+        EncodedCiphertext {
+            raw: d.into(),
+            components: 1,
+            _phantom: PhantomData,
         }
     }
 }
@@ -246,7 +346,7 @@ where
         let d = Self::mul(
             ek,
             RawCiphertext::from(&c.borrow().raw),
-            RawPlaintext::from(BigInt::from(m))
+            RawPlaintext::from(BigInt::from(m)),
         );
         EncodedCiphertext {
             raw: d.into(),
@@ -263,13 +363,32 @@ where
 {
     fn mul(ek: &EK, c: C, m: u64) -> EncodedCiphertext<Vec<u64>> {
         let d = Self::mul(
-            ek, 
-            RawCiphertext::from(&c.borrow().raw), 
-            RawPlaintext::from(BigInt::from(m))
+            ek,
+            RawCiphertext::from(&c.borrow().raw),
+            RawPlaintext::from(BigInt::from(m)),
         );
         EncodedCiphertext {
             raw: d.into(),
             components: c.borrow().components,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<EK, C> Mul<EK, C, BigInt, EncodedCiphertext<BigInt>> for Paillier
+where
+    for<'c, 'm, 'd> Self: Mul<EK, RawCiphertext<'c>, RawPlaintext<'m>, RawCiphertext<'d>>,
+    C: Borrow<EncodedCiphertext<BigInt>>,
+{
+    fn mul(ek: &EK, c: C, m: BigInt) -> EncodedCiphertext<BigInt> {
+        let d = Self::mul(
+            ek,
+            RawCiphertext::from(&c.borrow().raw),
+            RawPlaintext::from(m),
+        );
+        EncodedCiphertext {
+            raw: d.into(),
+            components: 1,
             _phantom: PhantomData,
         }
     }
@@ -282,9 +401,9 @@ where
 {
     fn mul(ek: &EK, m: u64, c: C) -> EncodedCiphertext<u64> {
         let d = Self::mul(
-            ek, 
-            RawPlaintext::from(BigInt::from(m)), 
-            RawCiphertext::from(&c.borrow().raw)
+            ek,
+            RawPlaintext::from(BigInt::from(m)),
+            RawCiphertext::from(&c.borrow().raw),
         );
         EncodedCiphertext {
             raw: d.into(),
@@ -301,9 +420,9 @@ where
 {
     fn mul(ek: &EK, m: u64, c: C) -> EncodedCiphertext<Vec<u64>> {
         let d = Self::mul(
-            ek, 
+            ek,
             RawPlaintext::from(BigInt::from(m)),
-            RawCiphertext::from(&c.borrow().raw)
+            RawCiphertext::from(&c.borrow().raw),
         );
         EncodedCiphertext {
             raw: d.into(),
@@ -313,19 +432,35 @@ where
     }
 }
 
+impl<EK, C> Mul<EK, BigInt, C, EncodedCiphertext<BigInt>> for Paillier
+where
+    for<'m, 'c, 'd> Self: Mul<EK, RawPlaintext<'m>, RawCiphertext<'c>, RawCiphertext<'d>>,
+    C: Borrow<EncodedCiphertext<BigInt>>,
+{
+    fn mul(ek: &EK, m: BigInt, c: C) -> EncodedCiphertext<BigInt> {
+        let d = Self::mul(
+            ek,
+            RawPlaintext::from(BigInt::from(m)),
+            RawCiphertext::from(&c.borrow().raw),
+        );
+        EncodedCiphertext {
+            raw: d.into(),
+            components: 1,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
-    use ::Keypair;
+    use Keypair;
 
     fn test_keypair() -> Keypair {
         let p = str::parse("148677972634832330983979593310074301486537017973460461278300587514468301043894574906886127642530475786889672304776052879927627556769456140664043088700743909632312483413393134504352834240399191134336344285483935856491230340093391784574980688823380828143810804684752914935441384845195613674104960646037368551517").unwrap();
         let q = str::parse("158741574437007245654463598139927898730476924736461654463975966787719309357536545869203069369466212089132653564188443272208127277664424448947476335413293018778018615899291704693105620242763173357203898195318179150836424196645745308205164116144020613415407736216097185962171301808761138424668335445923774195463").unwrap();
-        Keypair {
-            p: p,
-            q: q,
-        }
+        Keypair { p: p, q: q }
     }
 
     #[test]
@@ -439,4 +574,48 @@ mod tests {
         assert_eq!(m, vec![4, 8, 12]);
     }
 
+    // BigInt
+
+    #[test]
+    fn test_bigint_encrypt_decrypt() {
+        let (ek, dk) = test_keypair().keys();
+
+        let m = BigInt::from(10);
+        let c = Paillier::encrypt(&ek, m.clone());
+
+        let recovered_m = Paillier::decrypt(&dk, &c);
+        assert_eq!(recovered_m, m);
+    }
+    #[test]
+    fn test_bigint_add_plaintext_scalar() {
+        let (ek, dk) = test_keypair().keys();
+
+        let c1 = Paillier::encrypt(&ek, BigInt::from(10));
+        let m2 = BigInt::from(20);
+
+        let c = Paillier::add(&ek, &c1, m2);
+        let m = Paillier::decrypt(&dk, &c);
+        assert_eq!(m, BigInt::from(30));
+    }
+
+    #[test]
+    fn test_bigint_add_ciphertext_scalar() {
+        let (ek, dk) = test_keypair().keys();
+
+        let c1 = Paillier::encrypt(&ek, BigInt::from(10));
+        let c2 = Paillier::encrypt(&ek, BigInt::from(20));
+
+        let c = Paillier::add(&ek, &c1, &c2);
+        let m = Paillier::decrypt(&dk, &c);
+        assert_eq!(m, BigInt::from(30));
+    }
+    #[test]
+    fn test_bigint_mul_plaintext_scalar() {
+        let (ek, dk) = test_keypair().keys();
+
+        let c = Paillier::encrypt(&ek, BigInt::from(10));
+        let d = Paillier::mul(&ek, &c, BigInt::from(20));
+        let m = Paillier::decrypt(&dk, &d);
+        assert_eq!(m, BigInt::from(200));
+    }
 }
